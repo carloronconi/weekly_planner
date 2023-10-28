@@ -2,14 +2,16 @@ use std::env;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use regex::Regex;
 use chrono::{Days, NaiveDate};
 
+const DEFAULT_DIR_PATH: &str = "/home/carlo/Desktop";
+const FILE_NAME_PATTERN: &str = "^Todos-w[0-9]{8}\\.md$";
+const FILE_CONTENT_PATTERN: &str = r"^# Todos week [0-9]{8}\n"; // simplified file content check
+const FILE_DELETION_PATTERN: &str = r"- \[x\]";
+
 fn main() {
-    const DEFAULT_DIR_PATH: &str = "/home/carlo/Desktop";
-    const FILE_NAME_PATTERN: &str = "^Todos-w[0-9]{8}\\.md$";
-    const FILE_CONTENT_PATTERN: &str = r"^# Todos week [0-9]{8}\n"; // simplified file content check
-    const FILE_DELETION_PATTERN: &str = r"- \[x\]";
 
     // parse command line arguments
     let args: Vec<String> = env::args().collect();
@@ -19,18 +21,9 @@ fn main() {
     };
 
     // explore the directory to find the most recent weekly plan
-    let regex = Regex::new(FILE_NAME_PATTERN).unwrap();
-    let latest_week_file_path = fs::read_dir(dir_path)
-        .expect(&format!("Couldn't read the directory {dir_path}"))
-        .filter(|f|
-            regex.is_match(&f.as_ref().unwrap().file_name().into_string().unwrap()))
-        .max_by(|x, y|
-            x.as_ref().unwrap().file_name().cmp(&y.as_ref().unwrap().file_name()))
-        .unwrap()
-        .unwrap()
-        .path();
+    let latest_week_file_path = find_latest_weekly_plan(dir_path);
     let latest_week_file_path = latest_week_file_path.as_path();
-    println!("Found latest week plan in provided directory: {}", latest_week_file_path.to_str().unwrap());
+    println!("Found latest week plan in provided directory: {:?}", latest_week_file_path);
 
     // check if the most recent weekly plan has the correct content
     let latest_week_file_content = fs::read_to_string(&latest_week_file_path)
@@ -69,4 +62,18 @@ fn main() {
     println!("Done!");
 }
 
+fn find_latest_weekly_plan(dir_path: &str) -> PathBuf {
+    let regex = Regex::new(FILE_NAME_PATTERN).unwrap();
 
+    let latest_week_file_path = fs::read_dir(dir_path)
+        .expect(&format!("Couldn't read the directory {dir_path}"))
+        .filter(|f|
+            regex.is_match(&f.as_ref().unwrap().file_name().into_string().unwrap()))
+        .max_by(|x, y|
+            x.as_ref().unwrap().file_name().cmp(&y.as_ref().unwrap().file_name()))
+        .unwrap()
+        .unwrap()
+        .path();
+
+    latest_week_file_path
+}
