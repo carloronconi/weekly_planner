@@ -1,9 +1,9 @@
 use std::env;
 use std::fs;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use regex::Regex;
-use chrono::{Datelike, Days, NaiveDate};
+use chrono::{Days, NaiveDate};
 
 fn main() {
     const DEFAULT_DIR_PATH: &str = "/home/carlo/Desktop";
@@ -22,7 +22,6 @@ fn main() {
     const FILE_DELETION_PATTERN: &str = r"- \[x\]";
 
     let args: Vec<String> = env::args().collect();
-    dbg!(&args);
 
     let regex = Regex::new(FILE_NAME_PATTERN).unwrap();
 
@@ -41,12 +40,10 @@ fn main() {
         .unwrap()
         .path();
 
-    dbg!(&latest_week_file_path);
+    println!("Found latest week plan in provided directory: {}", latest_week_file_path.as_path().to_str().unwrap());
 
     let latest_week_file = fs::read_to_string(&latest_week_file_path)
         .expect("Couldn't read the file!");
-
-    dbg!(&latest_week_file);
 
     let regex = Regex::new(FILE_CONTENT_PATTERN).unwrap();
     if !regex.is_match(&latest_week_file) { panic!("File content doesn't match the expected pattern {FILE_CONTENT_PATTERN}"); }
@@ -70,7 +67,6 @@ fn main() {
     let next_week_file = latest_week_file_path.into_os_string().into_string().unwrap();
 
     let latest_week_date = next_week_file.split_at(next_week_file.len() - 11).1.split_at(8).0;
-    dbg!(&latest_week_date);
 
     let next_week_date = NaiveDate::parse_from_str(latest_week_date, "%Y%m%d")
         .unwrap()
@@ -78,11 +74,11 @@ fn main() {
         .unwrap();
     let next_week_date = next_week_date.to_string().replace("-", "");
 
-    dbg!(&next_week_date);
+    let next_week_file = next_week_file.split_at(next_week_file.len() - 11).0.to_owned() + &next_week_date.to_string() + ".md";
 
-    let next_week_file = next_week_file.split_at(next_week_file.len() - 8).0.to_owned() + &next_week_date.to_string() + ".md";
-
-    dbg!(&next_week_file);
+    println!("Writing next week's plan into: {next_week_file}");
 
     fs::write(next_week_file, next_week_file_content).expect("Couldn't write to file!");
+
+    println!("Done!");
 }
