@@ -10,6 +10,7 @@ const DEFAULT_DIR_PATH: &str = "/home/carlo/Desktop";
 const FILE_NAME_PATTERN: &str = "^Todos-w[0-9]{8}\\.md$";
 const FILE_CONTENT_PATTERN: &str = r"^# Todos week [0-9]{8}\n"; // simplified file content check
 const FILE_DELETION_PATTERN: &str = r"- \[x\]";
+// TODO: parse constants from .weplan_conf file
 
 fn main() {
     // parse command line arguments
@@ -18,6 +19,9 @@ fn main() {
         None => {DEFAULT_DIR_PATH}
         Some(dir) => {dir}
     };
+    // TODO: create standalone parser with options to
+    // 1. re-make last plan (integrating changes to both files)
+    // 2. make plan from scratch using template
 
     // explore the directory to find the most recent weekly plan
     let latest_week_file_path = find_latest_weekly_plan(dir_path).expect("Couldn't find weekly plan file in directory");
@@ -75,7 +79,7 @@ fn create_content_from_prev_week(path: &Path) -> String {
         .map(|x| x.unwrap())
         .filter(|l| !regex.is_match(&l))
         .collect::<Vec<String>>()
-        .join("\n")
+        .join("\n") // TODO: change first line to match file name's date
 }
 
 fn create_path_from_prev_week(path: &Path) -> String {
