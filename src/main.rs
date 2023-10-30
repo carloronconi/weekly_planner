@@ -9,7 +9,8 @@ use chrono::{Days, NaiveDate};
 const DEFAULT_DIR_PATH: &str = "/home/carlo/Desktop";
 const FILE_NAME_PATTERN: &str = "^Todos-w[0-9]{8}\\.md$";
 const FILE_CONTENT_PATTERN: &str = r"^# Todos week [0-9]{8}\n"; // simplified file content check
-const FILE_DELETION_PATTERN: &str = r"- \[x\]";
+const FILE_DELETE_PATTERN: &str = r"- \[x\]";
+const FILE_REPLACE_PATTERN: &str = r"# Todos week [0-9]{8}";
 // TODO: parse constants from .weplan_conf file
 
 fn main() {
@@ -34,11 +35,11 @@ fn main() {
         return;
     }
 
-    // create next week's plan from previous week's
-    let next_week_file_content = create_content_from_prev_week(latest_week_file_path);
-
     // create next week's plan file pathname from previous week's
     let next_week_file_path = create_path_from_prev_week(latest_week_file_path);
+
+    // create next week's plan from previous week's
+    let next_week_file_content = create_content_from_prev_week(latest_week_file_path, &next_week_file_path);
 
     // write next week's plan content to the file
     println!("Writing next week's plan into: {next_week_file_path}");
@@ -66,20 +67,26 @@ fn file_matches_format(path: &Path) -> bool {
     regex.is_match(&latest_week_file_content)
 }
 
-fn create_content_from_prev_week(path: &Path) -> String {
+fn create_content_from_prev_week(path: &Path, next_path: &String) -> String {
     let latest_week_file = OpenOptions::new()
         .read(true)
         .write(true)
         .open(path)
         .expect("Couldn't open previous week's file");
 
-    let regex = Regex::new(FILE_DELETION_PATTERN).unwrap();
-    BufReader::new(latest_week_file)
+    // delete content matching the delete pattern
+    let regex = Regex::new(FILE_DELETE_PATTERN).unwrap();
+    let content = BufReader::new(latest_week_file)
         .lines()
         .map(|x| x.unwrap())
         .filter(|l| !regex.is_match(&l))
         .collect::<Vec<String>>()
-        .join("\n") // TODO: change first line to match file name's date
+        .join("\n");
+
+    // replace content matching the replace pattern
+    let replacement = "# Todos week ".to_string() + next_path.split_at(next_path.len() - 11).1.split_at(8).0;
+    let regex = Regex::new(FILE_REPLACE_PATTERN).unwrap();
+    regex.replace(&content, replacement.as_str()).to_string()
 }
 
 fn create_path_from_prev_week(path: &Path) -> String {
